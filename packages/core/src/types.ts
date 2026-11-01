@@ -2,13 +2,13 @@
  * Core type definitions for Automata API specifications and test representations.
  */
 
-export type HttpMethod = 'GET' | 'POST' | 'PUT' | 'PATCH' | 'DELETE' | 'HEAD' | 'OPTIONS';
+export type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE" | "HEAD" | "OPTIONS";
 
 export interface KeyValuePair<T = string> {
   [key: string]: T;
 }
 
-export type SpecType = 'openapi' | 'odata-v2' | 'odata-v4';
+export type SpecType = "openapi" | "odata-v2" | "odata-v4";
 
 export interface ApiPropertyDefinition {
   name: string;
@@ -34,7 +34,7 @@ export interface ApiEntityDefinition {
 
 export interface ParameterDefinition {
   name: string;
-  in: 'path' | 'query' | 'header' | 'cookie';
+  in: "path" | "query" | "header" | "cookie";
   required?: boolean;
   type?: string;
   description?: string;
@@ -82,12 +82,12 @@ export interface ApiSpecDefinition {
 }
 
 export type AssertionType =
-  | 'status'
-  | 'header'
-  | 'json-schema'
-  | 'body-contains'
-  | 'xml-root-tag'
-  | 'custom';
+  | "status"
+  | "header"
+  | "json-schema"
+  | "body-contains"
+  | "xml-root-tag"
+  | "custom";
 
 export interface AssertionRule {
   type: AssertionType;

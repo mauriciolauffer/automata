@@ -2,5 +2,5 @@
   "name": "automata-test-worker",
   "main": "src/worker.ts",
   "compatibility_date": "2024-04-03",
-  "compatibility_flags": ["nodejs_compat"]
+  "compatibility_flags": ["nodejs_compat"],
 }

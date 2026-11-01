@@ -1,10 +1,10 @@
-import { describe, it, expect } from 'vitest';
-import { SELF } from 'cloudflare:test';
-import { specToTestSuite } from '@automata/generator';
-import { executeSuiteOnWorker } from '../src/index.js';
+import { describe, it, expect } from "vitest";
+import { SELF } from "cloudflare:test";
+import { specToTestSuite } from "@automata/generator";
+import { executeSuiteOnWorker } from "../src/index.js";
 
-describe('Cloudflare Workers automated test execution', () => {
-  it('executes OpenAPI generated tests on Cloudflare Worker runtime', async () => {
+describe("Cloudflare Workers automated test execution", () => {
+  it("executes OpenAPI generated tests on Cloudflare Worker runtime", async () => {
     const openapiSpec = `
 openapi: 3.2.1
 info:
@@ -40,9 +40,9 @@ paths:
 `;
 
     const suite = specToTestSuite({
-      specType: 'openapi',
+      specType: "openapi",
       content: openapiSpec,
-      openApiOptions: { generateNegativeTests: true }
+      openApiOptions: { generateNegativeTests: true },
     });
 
     const executionResult = await executeSuiteOnWorker(suite, SELF);
@@ -51,7 +51,7 @@ paths:
     expect(executionResult.failed).toBe(0);
   });
 
-  it('executes OData v2 generated tests on Cloudflare Worker runtime', async () => {
+  it("executes OData v2 generated tests on Cloudflare Worker runtime", async () => {
     const odataV2Xml = `<?xml version="1.0" encoding="utf-8"?>
 <edmx:Edmx Version="1.0" xmlns:edmx="http://schemas.microsoft.com/ado/2007/06/edmx">
   <edmx:DataServices m:DataServiceVersion="2.0" xmlns:m="http://schemas.microsoft.com/ado/2007/08/dataservices/metadata">
@@ -69,12 +69,12 @@ paths:
 </edmx:Edmx>`;
 
     const suite = specToTestSuite({
-      specType: 'odata-v2',
+      specType: "odata-v2",
       content: odataV2Xml,
       odataV2Options: {
         includeCrud: true,
-        sampleKeys: { Customers: 1 }
-      }
+        sampleKeys: { Customers: 1 },
+      },
     });
 
     const executionResult = await executeSuiteOnWorker(suite, SELF);
@@ -83,7 +83,7 @@ paths:
     expect(executionResult.passed).toBe(executionResult.total);
   });
 
-  it('executes OData v4 generated tests on Cloudflare Worker runtime', async () => {
+  it("executes OData v4 generated tests on Cloudflare Worker runtime", async () => {
     const odataV4Xml = `<?xml version="1.0" encoding="utf-8"?>
 <edmx:Edmx Version="4.0" xmlns:edmx="http://docs.oasis-open.org/odata/ns/edmx">
   <edmx:DataServices>
@@ -101,12 +101,12 @@ paths:
 </edmx:Edmx>`;
 
     const suite = specToTestSuite({
-      specType: 'odata-v4',
+      specType: "odata-v4",
       content: odataV4Xml,
       odataV4Options: {
         includeCrud: true,
-        sampleKeys: { Customers: 1 }
-      }
+        sampleKeys: { Customers: 1 },
+      },
     });
 
     const executionResult = await executeSuiteOnWorker(suite, SELF);

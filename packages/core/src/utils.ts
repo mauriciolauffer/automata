@@ -1,10 +1,10 @@
-import { XMLParser } from 'fast-xml-parser';
+import { XMLParser } from "fast-xml-parser";
 
 /**
  * Builds URL query string from object or KeyValuePair.
  */
 export function buildQueryString(params?: Record<string, unknown>): string {
-  if (!params) return '';
+  if (!params) return "";
   const searchParams = new URLSearchParams();
 
   for (const [key, value] of Object.entries(params)) {
@@ -14,18 +14,21 @@ export function buildQueryString(params?: Record<string, unknown>): string {
   }
 
   const str = searchParams.toString();
-  return str ? `?${str}` : '';
+  return str ? `?${str}` : "";
 }
 
 /**
  * Resolves full path with path parameters replaced.
  * e.g. /users/{id} with { id: '123' } => /users/123
  */
-export function resolvePath(pathTemplate: string, pathParams?: Record<string, string | number>): string {
+export function resolvePath(
+  pathTemplate: string,
+  pathParams?: Record<string, string | number>,
+): string {
   if (!pathParams) return pathTemplate;
   let resolved = pathTemplate;
   for (const [key, value] of Object.entries(pathParams)) {
-    resolved = resolved.replace(new RegExp(`\\{${key}\\}`, 'g'), encodeURIComponent(String(value)));
+    resolved = resolved.replace(new RegExp(`\\{${key}\\}`, "g"), encodeURIComponent(String(value)));
   }
   return resolved;
 }
@@ -34,8 +37,8 @@ export function resolvePath(pathTemplate: string, pathParams?: Record<string, st
  * Combines base path and endpoint path safely.
  */
 export function joinPaths(basePath: string, subPath: string): string {
-  const cleanBase = basePath.endsWith('/') ? basePath.slice(0, -1) : basePath;
-  const cleanSub = subPath.startsWith('/') ? subPath : `/${subPath}`;
+  const cleanBase = basePath.endsWith("/") ? basePath.slice(0, -1) : basePath;
+  const cleanSub = subPath.startsWith("/") ? subPath : `/${subPath}`;
   if (!cleanBase) return cleanSub;
   return `${cleanBase}${cleanSub}`;
 }
@@ -46,9 +49,9 @@ export function joinPaths(basePath: string, subPath: string): string {
 export function parseXml<T = unknown>(xmlContent: string): T {
   const parser = new XMLParser({
     ignoreAttributes: false,
-    attributeNamePrefix: '@_',
+    attributeNamePrefix: "@_",
     removeNSPrefix: true,
-    textNodeName: '#text',
+    textNodeName: "#text",
   });
   return parser.parse(xmlContent) as T;
 }
@@ -70,14 +73,10 @@ export function validateSchema(data: unknown, schema?: Record<string, unknown>):
 
   const expectedType = schema.type as string | undefined;
   if (expectedType) {
-    const actualType = Array.isArray(data)
-      ? 'array'
-      : data === null
-      ? 'null'
-      : typeof data;
+    const actualType = Array.isArray(data) ? "array" : data === null ? "null" : typeof data;
 
-    if (expectedType === 'integer') {
-      if (typeof data !== 'number' || !Number.isInteger(data)) {
+    if (expectedType === "integer") {
+      if (typeof data !== "number" || !Number.isInteger(data)) {
         errors.push(`Expected integer, received ${typeof data}`);
       }
     } else if (actualType !== expectedType) {
@@ -85,7 +84,12 @@ export function validateSchema(data: unknown, schema?: Record<string, unknown>):
     }
   }
 
-  if (schema.required && Array.isArray(schema.required) && typeof data === 'object' && data !== null) {
+  if (
+    schema.required &&
+    Array.isArray(schema.required) &&
+    typeof data === "object" &&
+    data !== null
+  ) {
     const record = data as Record<string, unknown>;
     for (const reqKey of schema.required) {
       if (!(reqKey in record)) {
@@ -94,7 +98,12 @@ export function validateSchema(data: unknown, schema?: Record<string, unknown>):
     }
   }
 
-  if (schema.properties && typeof schema.properties === 'object' && typeof data === 'object' && data !== null) {
+  if (
+    schema.properties &&
+    typeof schema.properties === "object" &&
+    typeof data === "object" &&
+    data !== null
+  ) {
     const record = data as Record<string, unknown>;
     const properties = schema.properties as Record<string, Record<string, unknown>>;
     for (const [propName, propSchema] of Object.entries(properties)) {

@@ -3,9 +3,9 @@ import type {
   OperationDefinition,
   TestSuiteDefinition,
   TestCaseDefinition,
-  AssertionRule
-} from '@automata/core';
-import { resolvePath } from '@automata/core';
+  AssertionRule,
+} from "@automata/core";
+import { resolvePath } from "@automata/core";
 
 export interface GenerateOpenApiTestOptions {
   defaultHeaders?: Record<string, string>;
@@ -15,7 +15,7 @@ export interface GenerateOpenApiTestOptions {
 
 export function generateOpenApiTests(
   spec: ApiSpecDefinition,
-  options?: GenerateOpenApiTestOptions
+  options?: GenerateOpenApiTestOptions,
 ): TestSuiteDefinition {
   const tests: TestCaseDefinition[] = [];
 
@@ -27,43 +27,44 @@ export function generateOpenApiTests(
       tests.push({
         id: `${op.id}_missing_body`,
         name: `${op.method} ${op.path} (Negative - Missing Body)`,
-        group: op.tags?.[0] || 'Operations',
+        group: op.tags?.[0] || "Operations",
         request: {
           method: op.method,
           path: resolvePath(op.path, options?.samplePathValues),
           headers: {
-            ...options?.defaultHeaders
-          }
+            ...options?.defaultHeaders,
+          },
         },
         expected: {
           statusCode: 400,
           assertions: [
             {
-              type: 'status',
+              type: "status",
               expected: 400,
-              message: 'Expect 400 Bad Request when required body is missing'
-            }
-          ]
+              message: "Expect 400 Bad Request when required body is missing",
+            },
+          ],
         },
-        tags: [...(op.tags || []), 'negative']
+        tags: [...(op.tags || []), "negative"],
       });
     }
   }
 
   return {
     title: `${spec.title} Test Suite`,
-    specType: 'openapi',
+    specType: "openapi",
     basePath: spec.basePath,
-    tests
+    tests,
   };
 }
 
 function createOperationTestCase(
   op: OperationDefinition,
   basePath: string,
-  options?: GenerateOpenApiTestOptions
+  options?: GenerateOpenApiTestOptions,
 ): TestCaseDefinition {
-  const primaryResponse = op.responses.find(r => r.statusCode >= 200 && r.statusCode < 300) || op.responses[0];
+  const primaryResponse =
+    op.responses.find((r) => r.statusCode >= 200 && r.statusCode < 300) || op.responses[0];
   const expectedStatus = primaryResponse?.statusCode || 200;
 
   const pathParams: Record<string, string | number> = {};
@@ -71,19 +72,24 @@ function createOperationTestCase(
   const headers: Record<string, string> = { ...options?.defaultHeaders };
 
   for (const param of op.parameters) {
-    if (param.in === 'path') {
-      const val = options?.samplePathValues?.[param.name] ?? (param.example ?? param.default ?? 'sample-id');
-      pathParams[param.name] = (typeof val === 'string' || typeof val === 'number') ? val : String(val);
-    } else if (param.in === 'query' && param.required) {
-      queryParams[param.name] = (param.example ?? param.default ?? 'test') as string | number | boolean;
-    } else if (param.in === 'header' && param.required) {
-      headers[param.name] = String(param.example ?? param.default ?? 'test');
+    if (param.in === "path") {
+      const val =
+        options?.samplePathValues?.[param.name] ?? param.example ?? param.default ?? "sample-id";
+      pathParams[param.name] =
+        typeof val === "string" || typeof val === "number" ? val : String(val);
+    } else if (param.in === "query" && param.required) {
+      queryParams[param.name] = (param.example ?? param.default ?? "test") as
+        | string
+        | number
+        | boolean;
+    } else if (param.in === "header" && param.required) {
+      headers[param.name] = String(param.example ?? param.default ?? "test");
     }
   }
 
   let requestBody: unknown = undefined;
   if (op.requestBody) {
-    headers['Content-Type'] = op.requestBody.contentType;
+    headers["Content-Type"] = op.requestBody.contentType;
     if (op.requestBody.example !== undefined) {
       requestBody = op.requestBody.example;
     } else if (op.requestBody.schema) {
@@ -93,46 +99,46 @@ function createOperationTestCase(
 
   const assertions: AssertionRule[] = [
     {
-      type: 'status',
+      type: "status",
       expected: expectedStatus,
-      message: `Expected response status to be ${expectedStatus}`
-    }
+      message: `Expected response status to be ${expectedStatus}`,
+    },
   ];
 
   if (primaryResponse?.contentType) {
     assertions.push({
-      type: 'header',
-      headerName: 'content-type',
+      type: "header",
+      headerName: "content-type",
       expected: primaryResponse.contentType,
-      message: `Expected Content-Type header to include ${primaryResponse.contentType}`
+      message: `Expected Content-Type header to include ${primaryResponse.contentType}`,
     });
   }
 
   if (primaryResponse?.schema) {
     assertions.push({
-      type: 'json-schema',
+      type: "json-schema",
       schema: primaryResponse.schema,
-      message: 'Response body should match defined schema'
+      message: "Response body should match defined schema",
     });
   }
 
   return {
     id: op.id,
-    name: `${op.method} ${op.path}${op.summary ? ` - ${op.summary}` : ''}`,
+    name: `${op.method} ${op.path}${op.summary ? ` - ${op.summary}` : ""}`,
     description: op.description,
-    group: op.tags?.[0] || 'Default',
+    group: op.tags?.[0] || "Default",
     request: {
       method: op.method,
       path: resolvePath(op.path, pathParams),
       headers: Object.keys(headers).length > 0 ? headers : undefined,
       queryParams: Object.keys(queryParams).length > 0 ? queryParams : undefined,
-      body: requestBody
+      body: requestBody,
     },
     expected: {
       statusCode: expectedStatus,
-      assertions
+      assertions,
     },
-    tags: op.tags
+    tags: op.tags,
   };
 }
 
@@ -141,13 +147,13 @@ function generateSampleFromSchema(schema: Record<string, any>): unknown {
   if (schema.default !== undefined) return schema.default;
 
   const type = schema.type;
-  if (type === 'string') return 'test-string';
-  if (type === 'number' || type === 'integer') return 1;
-  if (type === 'boolean') return true;
-  if (type === 'array') {
+  if (type === "string") return "test-string";
+  if (type === "number" || type === "integer") return 1;
+  if (type === "boolean") return true;
+  if (type === "array") {
     return schema.items ? [generateSampleFromSchema(schema.items)] : [];
   }
-  if (type === 'object' || schema.properties) {
+  if (type === "object" || schema.properties) {
     const obj: Record<string, unknown> = {};
     const props = schema.properties || {};
     for (const [key, propSchema] of Object.entries<any>(props)) {
