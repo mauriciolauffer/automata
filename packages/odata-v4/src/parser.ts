@@ -10,6 +10,11 @@ export interface ParseODataV4Options {
   basePath?: string;
 }
 
+function ensureArray<T>(item: T | T[] | undefined): T[] {
+  if (item === undefined || item === null) return [];
+  return Array.isArray(item) ? item : [item];
+}
+
 export function parseODataV4Metadata(
   xmlContent: string,
   options?: ParseODataV4Options,
@@ -21,8 +26,7 @@ export function parseODataV4Metadata(
     throw new Error("Invalid OData v4 metadata: DataServices element missing");
   }
 
-  const schemasRaw = dataServices.Schema;
-  const schemas = Array.isArray(schemasRaw) ? schemasRaw : [schemasRaw];
+  const schemas = ensureArray(dataServices.Schema);
 
   const entities: ApiEntityDefinition[] = [];
   const entityTypeMap = new Map<string, ApiEntityDefinition>();
@@ -30,34 +34,26 @@ export function parseODataV4Metadata(
   const operations: OperationDefinition[] = [];
 
   for (const schema of schemas) {
-    if (!schema) continue;
     const namespace = schema["@_Namespace"] || "";
 
-    const entityTypesRaw = schema.EntityType
-      ? Array.isArray(schema.EntityType)
-        ? schema.EntityType
-        : [schema.EntityType]
-      : [];
+    // EntityTypes
+    const entityTypesRaw = ensureArray(schema.EntityType);
     for (const et of entityTypesRaw) {
       const typeName = et["@_Name"];
       const fullTypeName = namespace ? `${namespace}.${typeName}` : typeName;
 
+      // Keys
       const keys: string[] = [];
       if (et.Key?.PropertyRef) {
-        const propRefs = Array.isArray(et.Key.PropertyRef)
-          ? et.Key.PropertyRef
-          : [et.Key.PropertyRef];
+        const propRefs = ensureArray(et.Key.PropertyRef);
         for (const pr of propRefs) {
           keys.push(pr["@_Name"]);
         }
       }
 
+      // Properties
       const properties: ApiPropertyDefinition[] = [];
-      const propsRaw = et.Property
-        ? Array.isArray(et.Property)
-          ? et.Property
-          : [et.Property]
-        : [];
+      const propsRaw = ensureArray(et.Property);
       for (const p of propsRaw) {
         const pName = p["@_Name"];
         properties.push({
@@ -68,12 +64,9 @@ export function parseODataV4Metadata(
         });
       }
 
+      // NavigationProperties
       const navProps: { name: string; targetEntity: string; isCollection: boolean }[] = [];
-      const navPropsRaw = et.NavigationProperty
-        ? Array.isArray(et.NavigationProperty)
-          ? et.NavigationProperty
-          : [et.NavigationProperty]
-        : [];
+      const navPropsRaw = ensureArray(et.NavigationProperty);
       for (const np of navPropsRaw) {
         const targetType = np["@_Type"] || "";
         navProps.push({
@@ -96,18 +89,11 @@ export function parseODataV4Metadata(
       }
     }
 
-    const entityContainersRaw = schema.EntityContainer
-      ? Array.isArray(schema.EntityContainer)
-        ? schema.EntityContainer
-        : [schema.EntityContainer]
-      : [];
-
+    // EntityContainer
+    const entityContainersRaw = ensureArray(schema.EntityContainer);
     for (const ec of entityContainersRaw) {
-      const entitySetsRaw = ec.EntitySet
-        ? Array.isArray(ec.EntitySet)
-          ? ec.EntitySet
-          : [ec.EntitySet]
-        : [];
+      // EntitySets
+      const entitySetsRaw = ensureArray(ec.EntitySet);
       for (const es of entitySetsRaw) {
         const setName = es["@_Name"];
         const fullEntityType = es["@_EntityType"];
@@ -126,11 +112,8 @@ export function parseODataV4Metadata(
         }
       }
 
-      const singletonsRaw = ec.Singleton
-        ? Array.isArray(ec.Singleton)
-          ? ec.Singleton
-          : [ec.Singleton]
-        : [];
+      // Singletons
+      const singletonsRaw = ensureArray(ec.Singleton);
       for (const s of singletonsRaw) {
         const singletonName = s["@_Name"];
         operations.push({
@@ -144,11 +127,8 @@ export function parseODataV4Metadata(
         });
       }
 
-      const actionImportsRaw = ec.ActionImport
-        ? Array.isArray(ec.ActionImport)
-          ? ec.ActionImport
-          : [ec.ActionImport]
-        : [];
+      // ActionImports
+      const actionImportsRaw = ensureArray(ec.ActionImport);
       for (const act of actionImportsRaw) {
         const actName = act["@_Name"];
         operations.push({
@@ -162,11 +142,8 @@ export function parseODataV4Metadata(
         });
       }
 
-      const functionImportsRaw = ec.FunctionImport
-        ? Array.isArray(ec.FunctionImport)
-          ? ec.FunctionImport
-          : [ec.FunctionImport]
-        : [];
+      // FunctionImports
+      const functionImportsRaw = ensureArray(ec.FunctionImport);
       for (const fn of functionImportsRaw) {
         const fnName = fn["@_Name"];
         operations.push({

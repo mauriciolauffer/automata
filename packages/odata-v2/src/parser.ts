@@ -10,6 +10,11 @@ export interface ParseODataV2Options {
   basePath?: string;
 }
 
+function ensureArray<T>(item: T | T[] | undefined): T[] {
+  if (item === undefined || item === null) return [];
+  return Array.isArray(item) ? item : [item];
+}
+
 export function parseODataV2Metadata(
   xmlContent: string,
   options?: ParseODataV2Options,
@@ -21,8 +26,7 @@ export function parseODataV2Metadata(
     throw new Error("Invalid OData v2 metadata: DataServices element missing");
   }
 
-  const schemasRaw = dataServices.Schema;
-  const schemas = Array.isArray(schemasRaw) ? schemasRaw : [schemasRaw];
+  const schemas = ensureArray(dataServices.Schema);
 
   const entities: ApiEntityDefinition[] = [];
   const entityTypeMap = new Map<string, ApiEntityDefinition>();
@@ -30,34 +34,26 @@ export function parseODataV2Metadata(
   const operations: OperationDefinition[] = [];
 
   for (const schema of schemas) {
-    if (!schema) continue;
     const namespace = schema["@_Namespace"] || "";
 
-    const entityTypesRaw = schema.EntityType
-      ? Array.isArray(schema.EntityType)
-        ? schema.EntityType
-        : [schema.EntityType]
-      : [];
+    // EntityTypes
+    const entityTypesRaw = ensureArray(schema.EntityType);
     for (const et of entityTypesRaw) {
       const typeName = et["@_Name"];
       const fullTypeName = namespace ? `${namespace}.${typeName}` : typeName;
 
+      // Keys
       const keys: string[] = [];
       if (et.Key?.PropertyRef) {
-        const propRefs = Array.isArray(et.Key.PropertyRef)
-          ? et.Key.PropertyRef
-          : [et.Key.PropertyRef];
+        const propRefs = ensureArray(et.Key.PropertyRef);
         for (const pr of propRefs) {
           keys.push(pr["@_Name"]);
         }
       }
 
+      // Properties
       const properties: ApiPropertyDefinition[] = [];
-      const propsRaw = et.Property
-        ? Array.isArray(et.Property)
-          ? et.Property
-          : [et.Property]
-        : [];
+      const propsRaw = ensureArray(et.Property);
       for (const p of propsRaw) {
         const pName = p["@_Name"];
         properties.push({
@@ -68,17 +64,14 @@ export function parseODataV2Metadata(
         });
       }
 
+      // NavigationProperties
       const navProps: { name: string; targetEntity: string; isCollection: boolean }[] = [];
-      const navPropsRaw = et.NavigationProperty
-        ? Array.isArray(et.NavigationProperty)
-          ? et.NavigationProperty
-          : [et.NavigationProperty]
-        : [];
+      const navPropsRaw = ensureArray(et.NavigationProperty);
       for (const np of navPropsRaw) {
         navProps.push({
           name: np["@_Name"],
           targetEntity: np["@_ToRole"] || "",
-          isCollection: np["@_Relationship"]?.includes("Many") || false,
+          isCollection: Boolean(np["@_Relationship"]?.includes("Many")),
         });
       }
 
@@ -95,18 +88,10 @@ export function parseODataV2Metadata(
       }
     }
 
-    const entityContainersRaw = schema.EntityContainer
-      ? Array.isArray(schema.EntityContainer)
-        ? schema.EntityContainer
-        : [schema.EntityContainer]
-      : [];
-
+    // EntityContainer
+    const entityContainersRaw = ensureArray(schema.EntityContainer);
     for (const ec of entityContainersRaw) {
-      const entitySetsRaw = ec.EntitySet
-        ? Array.isArray(ec.EntitySet)
-          ? ec.EntitySet
-          : [ec.EntitySet]
-        : [];
+      const entitySetsRaw = ensureArray(ec.EntitySet);
       for (const es of entitySetsRaw) {
         const setName = es["@_Name"];
         const fullEntityType = es["@_EntityType"];
@@ -125,19 +110,11 @@ export function parseODataV2Metadata(
         }
       }
 
-      const fnImportsRaw = ec.FunctionImport
-        ? Array.isArray(ec.FunctionImport)
-          ? ec.FunctionImport
-          : [ec.FunctionImport]
-        : [];
+      const fnImportsRaw = ensureArray(ec.FunctionImport);
       for (const fn of fnImportsRaw) {
         const fnName = fn["@_Name"];
         const httpMethod = (fn["@_HttpMethod"] || "GET").toUpperCase() as any;
-        const fnParamsRaw = fn.Parameter
-          ? Array.isArray(fn.Parameter)
-            ? fn.Parameter
-            : [fn.Parameter]
-          : [];
+        const fnParamsRaw = ensureArray(fn.Parameter);
         const parameters = fnParamsRaw.map((p: any) => ({
           name: p["@_Name"],
           in: "query" as const,

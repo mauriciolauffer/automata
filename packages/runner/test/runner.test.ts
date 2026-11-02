@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import { SELF } from "cloudflare:test";
 import { specToTestSuite } from "@automata/generator";
 import { executeSuiteOnWorker } from "../src/index.js";
+import type { TestSuiteDefinition } from "@automata/core";
 
 describe("Cloudflare Workers automated test execution", () => {
   it("executes OpenAPI generated tests on Cloudflare Worker runtime", async () => {
@@ -113,5 +114,93 @@ paths:
     expect(executionResult.total).toBeGreaterThan(0);
     expect(executionResult.failed).toBe(0);
     expect(executionResult.passed).toBe(executionResult.total);
+  });
+
+  it("tests worker HTTP methods (OPTIONS, PUT, DELETE, and invalid routes)", async () => {
+    const resOpt = await SELF.fetch("http://local.worker/Customers", { method: "OPTIONS" });
+    expect(resOpt.status).toBe(200);
+
+    const resPut = await SELF.fetch("http://local.worker/Customers(1)", {
+      method: "PUT",
+      body: "{}",
+    });
+    expect(resPut.status).toBe(204);
+
+    const resDel = await SELF.fetch("http://local.worker/Customers(1)", { method: "DELETE" });
+    expect(resDel.status).toBe(204);
+
+    const resBadPost = await SELF.fetch("http://local.worker/Customers", {
+      method: "POST",
+      body: "invalid-json",
+    });
+    expect(resBadPost.status).toBe(400);
+
+    const resBadApiPost = await SELF.fetch("http://local.worker/api/users", {
+      method: "POST",
+      body: "invalid-json",
+    });
+    expect(resBadApiPost.status).toBe(400);
+
+    const resNotFound = await SELF.fetch("http://local.worker/not-exists", { method: "GET" });
+    expect(resNotFound.status).toBe(404);
+  });
+
+  it("handles assertion failures and catches errors in executeSuiteOnWorker", async () => {
+    const failingSuite: TestSuiteDefinition = {
+      title: "Failing Suite",
+      specType: "openapi",
+      basePath: "",
+      tests: [
+        {
+          id: "status_mismatch",
+          name: "Status Mismatch",
+          request: { method: "GET", path: "/not-exists" },
+          expected: {
+            statusCode: 200,
+            assertions: [{ type: "status", expected: 200 }],
+          },
+        },
+        {
+          id: "header_mismatch",
+          name: "Header Mismatch",
+          request: { method: "GET", path: "/" },
+          expected: {
+            statusCode: 200,
+            assertions: [{ type: "header", headerName: "x-missing-hdr", expected: "expected-val" }],
+          },
+        },
+        {
+          id: "body_mismatch",
+          name: "Body Mismatch",
+          request: { method: "GET", path: "/" },
+          expected: {
+            statusCode: 200,
+            assertions: [{ type: "body-contains", expected: "non-existent-substring" }],
+          },
+        },
+        {
+          id: "schema_mismatch",
+          name: "Schema Mismatch",
+          request: { method: "GET", path: "/" },
+          expected: {
+            statusCode: 200,
+            assertions: [
+              {
+                type: "json-schema",
+                schema: { type: "object", required: ["non_existent_key"] },
+              },
+            ],
+          },
+        },
+      ],
+    };
+
+    const result = await executeSuiteOnWorker(failingSuite, SELF);
+    expect(result.failed).toBe(4);
+    expect(result.passed).toBe(0);
+    expect(result.results[0].error).toContain("Expected status 200, got 404");
+    expect(result.results[1].error).toContain("missing expected");
+    expect(result.results[2].error).toContain("does not contain");
+    expect(result.results[3].error).toContain("JSON schema validation error");
   });
 });
